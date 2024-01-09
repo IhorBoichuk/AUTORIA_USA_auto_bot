@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Info Form</title>
+</head>
+<body>
+
+<h2>User Info Form</h2>
+
+<form method="post" action="{% url 'start_notifier' %}">
+    {% csrf_token %}
+    
+    {{ form.as_p }}
+
+    <button type="submit">Submit</button>
+</form>
+
+</body>
+</html>
