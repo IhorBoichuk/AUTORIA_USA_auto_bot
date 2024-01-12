@@ -1,38 +1,35 @@
 from django.shortcuts import render
-from django.http import HttpResponse
-from .utils import process_car_info
+from .utils import process_car_info, get_autoria_api__model, get_autoria_api__brand, get_auto_ria_auto_search_result, get_searched_auto_detail
 from django.shortcuts import render
 from .forms import SearchForm
-# from .utils import process_car_info, notify_if_new_car
-
-
-
-# def start_notifier(request):
-#     process_car_info()
-#     return HttpResponse("Notifying process started.")
-
-
+import time
 
 def start_notifier(request):
     if request.method == 'POST':
         form = SearchForm(request.POST)
         if form.is_valid():
-            # Отримання даних з форми
             vehicle_type = form.cleaned_data['vehicle_type']
             brand_model = form.cleaned_data['brand_model']
             imported_from_us = form.cleaned_data['imported_from_us']
             accident = form.cleaned_data['accident']
 
-            # Виклик функції обробки інформації
-            car_info = {
-                'brand': brand_model,
-                'price': '15000 USD',  # Вам потрібно буде отримати цю інформацію зі свого скрапера
-                'auto_ria_link': 'https://auto.ria.com',
-                'auction_link': 'https://example-auction.com',
-                'photo_urls': ['https://example.com/photo1.jpg', 'https://example.com/photo2.jpg', 'https://example.com/photo3.jpg']
-            }
-            process_car_info(car_info)
+            brand, model = brand_model.split()[0], brand_model.split()[1]
+            brandId = get_autoria_api__brand(brand)
+            modelId  = get_autoria_api__model(brandId, model)
+            while True:
+                search_result = get_auto_ria_auto_search_result(brandId, modelId)
 
+                for i in range(len(search_result['ids'])):
+                    autoria_links = get_searched_auto_detail(search_result['ids'][i])
+                    car_info = {
+                        'brand': brand_model,
+                        'price': autoria_links[2],
+                        'auto_ria_link': autoria_links[0],
+                        'auction_link': 'https://example-auction.com',
+                        'photo_urls': autoria_links[1]
+                    }
+                    process_car_info(car_info)
+                time.sleep(600)
     else:
         form = SearchForm()
 

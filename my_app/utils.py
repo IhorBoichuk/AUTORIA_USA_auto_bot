@@ -1,59 +1,69 @@
 import requests
-from bs4 import BeautifulSoup
-from datetime import datetime
 from telegram import Bot
 from telegram import InputMediaPhoto, InputTextMessageContent
 from .models import Car
-import time
-# from telegram.ext import ParseMode
+import json
+from my_project.settings import YOUR_API_KEY, API_KEY, CHAT_ID
+from telegram.constants import ParseMode
+import asyncio
 
+def get_autoria_api__brand(brand):
+    json_file_path = 'I:\\autoriascrap\\my_project\\my_app\\all_marks.json'
+    with open(json_file_path, 'r') as file:
+        data = json.load(file)
+    for i in data:
+        if i['name']==str(brand).title():
+            return i['value']
 
-def scrape_auto_ria():
-    url = "https://auto.ria.com"
-    search_endpoint = "/uk/search/"
-    
+def get_autoria_api__model(brandId, model):
+    api_url = f'http://api.auto.ria.com/categories/1/marks/{brandId}/models?api_key=={YOUR_API_KEY}'
+    try:
+        response = requests.get(api_url)
+        if response.status_code == 200:
+            all_models = response.json()
+            for i in all_models:
+                if i['name']==str(model).title():   
+                    return i['value']
+        else:
+            print(f"API request failed with status code {response.status_code}")
+            return None
+    except requests.exceptions.RequestException as e:
+        print(f"Error making API request: {e}")
+        return None
+
+def get_auto_ria_auto_search_result(brandId, modelId):
+    url = f"https://developers.ria.com/auto/search?api_key={YOUR_API_KEY}"
     params = {
-        'type': '1',  # Легкові
-        'marka_id': 79,  # Toyota
-        'model_id': 1030,  # Sequoia
-        'country': 1,  # США
-        'damage': 2  # Участь в ДТП - Так
-    }
-    
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
-    
-    while True:
-        try:
-            response = requests.get(url + search_endpoint, params=params, headers=headers)
-            response.raise_for_status()
-            
-            soup = BeautifulSoup(response.content, 'html.parser')
-            
-            # Тут ви можете реалізувати код для обробки отриманих даних, наприклад, витягти URL автомобілів із списку результатів.
-            # Пам'ятайте про вивчення правил сайту auto.ria.com щодо скрапінгу.
+        'category_id': '1',
+        'marka_id': str(brandId),
+        'model_id': str(modelId),
+        'matched_country': '1',
+        'damage': '1'
+    } 
+    # headers = {
+    #     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}  
+    try:
+        response = requests.get(url, params=params)
+        all = response.json()
+        return all['result']['search_result']
+    except Exception as e:
+        print(f"Error: {e}")
 
-            # Наприклад:
-            # car_urls = [car['href'] for car in soup.find_all('a', class_='link-top')]
+def get_searched_auto_detail(id_searched_auto):
+    url = f"https://developers.ria.com/auto/info?api_key={YOUR_API_KEY}&auto_id={id_searched_auto}"
+    try:
+        response = requests.get(url)
+        res = response.json()
+        return (f'https://auto.ria.com/uk{res['linkToView']}', list(res['photoData'].values())[2:], res['USD'])
+    except Exception as e:
+        print(f"Error: {e}")
 
-            # Тут можна викликати функцію для обробки URL автомобілів або збереження даних у базу даних.
-
-        except Exception as e:
-            print(f"Error: {e}")
-
-def send_notification_to_telegram(car_info):
-    bot_token = '6466822049:AAFsHi9pzmS5t_2IIvPBJglrq-nSAOMmVFE'
-    chat_id = ' -1001644481765'
-    bot = Bot(token=bot_token)
-
-    # Формування повідомлення
-    message_content = f"*{car_info['brand']}*\n\nЦіна: {car_info['price']}\n[Посилання на auto.ria]({car_info['auto_ria_link']})\n[Посилання на аукціон]({car_info['auction_link']})"
-    print(message_content)
-    # Додавання фотографій у вигляді альбому
+async def send_notification_to_telegram(car_info):
+    bot = Bot(token=API_KEY)
+    message_content = f"*{car_info['brand']}*\n\nЦіна: {car_info['price']}\n[Посилання на auto.ria]({car_info['auto_ria_link']})"
     media = [InputMediaPhoto(car_info['photo_urls'][i]) for i in range(min(3, len(car_info['photo_urls'])))]
-    
-    # Надсилання повідомлення
-    bot.send_media_group(chat_id=chat_id, media=media, caption=message_content, )#parse_mode=ParseMode.MARKDOWN
+    await bot.send_media_group(chat_id=CHAT_ID, media=media, caption=message_content, parse_mode=ParseMode.MARKDOWN)
+    return    
 
 def notify_if_new_car(car_info):
     try:
@@ -66,24 +76,10 @@ def notify_if_new_car(car_info):
             auction_link=car_info['auction_link'],
             photo_urls=car_info['photo_urls']
         )
-        send_notification_to_telegram(car_info)
+        asyncio.run(send_notification_to_telegram(car_info))
 
 def process_car_info(car_info):
-    while True:
-        try:
-            car_info = car_info
-            '''{
-                'brand': 'Toyota Sequoia',
-                'price': '15000 USD',
-                'auto_ria_link': 'https://auto.ria.com',
-                'auction_link': 'https://example-auction.com',
-                'photo_urls': ['https://example.com/photo1.jpg', 'https://example.com/photo2.jpg', 'https://example.com/photo3.jpg']
-            }'''
-            
-
-            notify_if_new_car(car_info)
-
-        except Exception as e:
-            print(f"Error: {e}")
-
-        time.sleep(600)  # Затримка 10 хвилин перед наступним запитом
+    try:
+        notify_if_new_car(car_info)
+    except Exception as e:
+        print(f"Error: {e}")
