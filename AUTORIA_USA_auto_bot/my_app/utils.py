@@ -8,7 +8,7 @@ from telegram.constants import ParseMode
 import asyncio
 
 def get_autoria_api__brand(brand):
-    json_file_path = 'I:\\autoriascrap\\my_project\\my_app\\all_marks.json'
+    json_file_path = 'my_app/all_marks.json'
     with open(json_file_path, 'r') as file:
         data = json.load(file)
     for i in data:
