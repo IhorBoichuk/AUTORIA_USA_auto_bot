@@ -16,7 +16,7 @@ def get_autoria_api__brand(brand):
             return i['value']
 
 def get_autoria_api__model(brandId, model):
-    api_url = f'http://api.auto.ria.com/categories/1/marks/{brandId}/models?api_key=={YOUR_API_KEY}'
+    api_url = f'http://api.auto.ria.com/categories/1/marks/{brandId}/models?api_key={YOUR_API_KEY}'
     try:
         response = requests.get(api_url)
         if response.status_code == 200:
