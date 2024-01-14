@@ -9,15 +9,12 @@ Copy your new Telegram bot’s token
 
 2. You will also need to know your own telegram user ID, so the bot knows who to send messages to. Talk to @userinfobot to get this information. Once again, copy this information down somewhere.
 
-# for Windows 
+in Docker-compose.yml file:  
 set YOUR_API_KEY=API_KEY you get from https://developers.ria.com/account  
 set CHAT_ID=your own telegram user ID  
 set API_KEY=Telegram bot’s token  
 
-# for linux
-export YOUR_API_KEY=API_KEY you get from https://developers.ria.com/account  
-export CHAT_ID=your own telegram user ID  
-export API_KEY=Telegram bot’s token  
+ 
 
 # up container
 docker-compose up --build --force-recreate  
